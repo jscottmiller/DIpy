@@ -1,0 +1,5 @@
+#!/bin/bash
+
+coverage run tests.py
+coverage html
+open htmlcov/dipy.html
