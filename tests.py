@@ -34,7 +34,7 @@ class ContainerTests(unittest.TestCase):
     def test_cannot_resolve_nonregistered_name(self):
         c = dipy.Container()
         
-        # Register a class with a dependency, but not it's dependent
+        # Register a class with a dependency, but not its dependent
         c.register("component", ComponentWithOneDependency)
         
         # Resolving the component should fail
@@ -43,7 +43,7 @@ class ContainerTests(unittest.TestCase):
     def test_cannot_resolve_nonregistered_list(self):
         c = dipy.Container()
         
-        # Register a class with a dependency, but not it's dependent
+        # Register a class with a dependency, but not its dependent
         c.register("component", ComponentWithListDependency)
         
         # Resolving the component should fail

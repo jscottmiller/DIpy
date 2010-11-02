@@ -8,18 +8,18 @@ class Container(object):
     def __init__(self, parent=None, automock=False):
         super(Container, self).__init__()
         self.parent = parent
-        self.automock = automock
         self.registry = {}
-        self.instances = []
-        self.single_instances = {}
-        self.invalid_names = [
+        self._automock = automock
+        self._instances = []
+        self._single_instances = {}
+        self._invalid_names = [
             re.compile(r"_fact_list"), # Don't allow lists of factories
         ]
     
     def register(self, name, obj, single_instance=False):
         # If the object is not a type or function, add it to the instance list
         if not isinstance(obj, type) and not hasattr(obj, '__call__'):
-            self.instances.append(obj)
+            self._instances.append(obj)
         self.registry[name] = \
             self.registry.get(name, []) + [(obj, single_instance)]
     
@@ -27,7 +27,7 @@ class Container(object):
         # If asked for a string, resolve based on the name
         if isinstance(type, str):
             return self._create_from_str(type, *args)
-                
+        
         # Otherwise, resolve based on the named arguments for the constructor
         init_args = type.__init__.im_func.func_code.co_varnames
         resolved_args = {}
@@ -38,16 +38,16 @@ class Container(object):
         result = type(*args, **resolved_args)
         if hasattr(result, '__enter__'):
             result = result.__enter__()
-        self.instances.append(result)
+        self._instances.append(result)
         return result
     
     def _create_from_str(self, name, *args):
         def create_helper(name, obj, single_instance):
             # If a single instance is required, create and store it
             if single_instance:
-                if name not in self.single_instances: 
-                    self.single_instances[name] = create_helper(name, obj, False)
-                return self.single_instances[name]
+                if name not in self._single_instances: 
+                    self._single_instances[name] = create_helper(name, obj, False)
+                return self._single_instances[name]
             # If the object is a type, resolve that type
             elif isinstance(obj, type):
                 return self.resolve(obj, *args)
@@ -81,9 +81,9 @@ class Container(object):
                 obj, is_single = container.registry[name][0]
                 return create_helper(name, obj, is_single)
             container = container.parent
-
+        
         # If mocking is enabled, create a new mock
-        if self.automock:
+        if self._automock:
             return Mock(name)
         
         # If no matching registration is found, raise an exception
@@ -91,7 +91,7 @@ class Container(object):
             "The requested dependency '%s' could not be located" % name)    
     
     def _is_valid_name(self, name):
-        for regex in self.invalid_names:
+        for regex in self._invalid_names:
             if regex.findall(name): 
                 return False
         return True
@@ -100,7 +100,7 @@ class Container(object):
         return self
     
     def __exit__(self, type, value, traceback):
-        for instance in self.single_instances.values() + self.instances:
+        for instance in self._single_instances.values() + self._instances:
             if hasattr(instance, '__exit__'):
                 instance.__exit__(type, value, traceback)
 
