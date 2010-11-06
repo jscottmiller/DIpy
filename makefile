@@ -9,5 +9,4 @@ test : tests.py dipy.py
 	python tests.py
 
 clean :
-	rm -rf *.pyc
-	rm -rf htmlcov
+	rm -rf *.pyc htmlcov .coverage

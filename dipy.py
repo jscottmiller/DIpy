@@ -23,7 +23,7 @@ class Container(object):
         self.registry[name] = \
             self.registry.get(name, []) + [(obj, single_instance)]
     
-    def resolve(self, type, *args):    
+    def resolve(self, type, *args):
         # If asked for a string, resolve based on the name
         if isinstance(type, str):
             return self._create_from_str(type, *args)
