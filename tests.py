@@ -259,8 +259,63 @@ class ContainerTests(unittest.TestCase):
         self.assertEqual(type(comp), ComponentWithOneDependency)
         self.assertNotEqual(comp.widget, None)
         self.assertEqual(type(comp.widget), ComponentWithNoDependencies)
+
+    def test_can_resolve_mock_from_parent_container(self):
+        # Create a parent container with mocking
+        parent = dipy.Container(automock=True)
+
+        # Create a child container, register a component with a dependency
+        child = dipy.Container(parent=parent)
+        child.register("component", ComponentWithOneDependency)
+        
+        # Resolve the component. It should be the instance from the parent
+        comp = child.resolve("component")
+        self.assertNotEqual(comp, None)
+        self.assertEqual(type(comp), ComponentWithOneDependency)
+        self.assertNotEqual(comp.widget, None)
+        self.assertEqual(type(comp.widget), dipy.Mock)
+
+    def test_can_dispose_components(self):
+        parent = dipy.Container()
+        
+        # Register one component with gaurd 
+        parent.register("component", ComponentWithGaurd)
+        
+        # Create a new container in a with statement
+        with dipy.Container(parent=parent) as child:
+            # Resolve the component
+            comp = child.resolve("component")
+
+            # Verify that enter was called on the dependency
+            self.assertEqual(type(comp), ComponentWithGaurd)
+            self.assertEqual(comp._enter_calls, 1)
+            self.assertEqual(comp._exit_calls, 0)
+        
+        # Verify exit is called on the dependency
+        self.assertEqual(comp._enter_calls, 1)
+        self.assertEqual(comp._exit_calls, 1)
     
-    def test_can_deterministically_dispose_components(self):
+    def test_can_dispose_single_instance(self):
+        parent = dipy.Container()
+        
+        # Register one component with gaurd 
+        parent.register("component", ComponentWithGaurd, single_instance=True)
+        
+        # Create a new container in a with statement
+        with dipy.Container(parent=parent) as child:
+            # Resolve the component
+            comp = child.resolve("component")
+
+            # Verify that enter was called on the dependency
+            self.assertEqual(type(comp), ComponentWithGaurd)
+            self.assertEqual(comp._enter_calls, 1)
+            self.assertEqual(comp._exit_calls, 0)
+        
+        # Verify exit is called on the dependency
+        self.assertEqual(comp._enter_calls, 1)
+        self.assertEqual(comp._exit_calls, 1)
+ 
+    def test_can_dispose_dependent_components(self):
         parent = dipy.Container()
         
         # Register one component with gaurd and another without
@@ -281,7 +336,37 @@ class ContainerTests(unittest.TestCase):
         # Verify exit is called on the dependency
         self.assertEqual(comp.widget._enter_calls, 1)
         self.assertEqual(comp.widget._exit_calls, 1)
+
+    def test_single_instance_owned_by_child(self):
+        parent = dipy.Container()
         
+        # Register one component with gaurd and another without
+        parent.register("component", ComponentWithOneDependency)
+        parent.register("widget", ComponentWithGaurd, single_instance=True)
+        
+        # Create a new container in a with statement
+        with dipy.Container(parent=parent) as child:
+            # Resolve the component
+            comp = child.resolve("component")
+
+            # Verify that enter was called on the dependency
+            self.assertNotEqual(comp.widget, None)
+            self.assertEqual(type(comp.widget), ComponentWithGaurd)
+            self.assertEqual(comp.widget._enter_calls, 1)
+            self.assertEqual(comp.widget._exit_calls, 0)
+        
+        # Verify exit is called on the dependency
+        self.assertEqual(comp.widget._enter_calls, 1)
+        self.assertEqual(comp.widget._exit_calls, 1)
+
+        # Resolve a second component instance
+        w2 = parent.resolve("widget")
+
+        # Verify the widget is a new instance
+        self.assertNotEqual(w2, None)
+        self.assertEqual(type(w2), ComponentWithGaurd)
+        self.assertNotEqual(w2, comp.widget)
+
 
 class ComponentWithNoDependencies(object):
     
