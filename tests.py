@@ -235,7 +235,7 @@ class ContainerTests(TestCase):
         self.assertNotEqual(comp1.widget, None)
         self.assertEqual(type(comp1.widget), Mock)
     
-    def test_can_create_child_container(self):
+    def test_can_child_container_override_parent(self):
         # Create a parent container and register a single instance and another component
         parent = Container()
         dep1 = ComponentWithNoDependencies()
@@ -252,6 +252,17 @@ class ContainerTests(TestCase):
         self.assertNotEqual(comp1.widget, None)
         self.assertEqual(type(comp1.widget), ComponentWithNoDependencies)
         self.assertEqual(comp1.widget, dep2)
+    
+    def test_cannot_resolve_missing_registration_with_parent(self):
+        # Create a parent container and register nothing
+        parent = Container()
+        
+        # Create a child container, register another single instance dependency
+        child = Container(parent=parent)
+        child.register("component", ComponentWithOneDependency)
+        
+        # Resolve the component and verify that the child's component was injected
+        self.assertRaises(DipyException, lambda: child.resolve("component"))
     
     def test_can_resolve_from_parent_with_mocking_child_container(self):
         # Create a parent container and a component
