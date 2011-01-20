@@ -1,15 +1,15 @@
 #!/usr/bin/python
 
-import unittest
-import dipy
+from unittest import TestCase, main
+from dipy import Container, Mock, DipyException
 
 
 #--- Tests and related classes for the IOC container
 
-class ContainerTests(unittest.TestCase):
+class ContainerTests(TestCase):
     
     def test_can_resolve_simple_class(self):
-        c = dipy.Container()
+        c = Container()
         
         # Register the target class
         c.register("component", ComponentWithNoDependencies)
@@ -23,34 +23,43 @@ class ContainerTests(unittest.TestCase):
         self.assertEqual(type(comp2), ComponentWithNoDependencies)
         self.assertNotEqual(comp1, comp2)
     
+    def test_cannot_resolve_from_type(self):
+        c = Container()
+        
+        # Register the target class
+        c.register("component", ComponentWithNoDependencies)
+        
+        # Resolve the component by type should fail
+        self.assertRaises(DipyException, lambda: c.resolve(ComponentWithNoDependencies))
+    
     def test_can_exception_format_message(self):
         # Create the exception
         message = "some exception message"
-        e = dipy.DipyException(message)
+        e = DipyException(message)
         
         # Verify the string representation is the message
         self.assertEqual(str(e), message)
     
     def test_cannot_resolve_nonregistered_name(self):
-        c = dipy.Container()
+        c = Container()
         
         # Register a class with a dependency, but not its dependent
         c.register("component", ComponentWithOneDependency)
         
         # Resolving the component should fail
-        self.assertRaises(dipy.DipyException, lambda: c.resolve("component"))
+        self.assertRaises(DipyException, lambda: c.resolve("component"))
     
     def test_cannot_resolve_nonregistered_list(self):
-        c = dipy.Container()
+        c = Container()
         
         # Register a class with a dependency, but not its dependent
         c.register("component", ComponentWithListDependency)
         
         # Resolving the component should fail
-        self.assertRaises(dipy.DipyException, lambda: c.resolve("component"))
+        self.assertRaises(DipyException, lambda: c.resolve("component"))
     
     def test_can_resolve_instance(self):
-        c = dipy.Container()
+        c = Container()
         
         # Register the target class
         c.register("component", ComponentWithNoDependencies())
@@ -65,7 +74,7 @@ class ContainerTests(unittest.TestCase):
         self.assertEqual(comp1, comp2)
     
     def test_can_resolve_single_instance(self):
-        c = dipy.Container()
+        c = Container()
         
         # Register a single instance component with one dependency
         c.register("component", ComponentWithOneDependency, single_instance=True)
@@ -82,7 +91,7 @@ class ContainerTests(unittest.TestCase):
         self.assertEqual(comp1.widget, comp2.widget)
     
     def test_can_resolve_single_instance_list(self):
-        c = dipy.Container()
+        c = Container()
         
         # Register a single instance and a component that requires a list
         c.register("component", ComponentWithListDependency)
@@ -101,7 +110,7 @@ class ContainerTests(unittest.TestCase):
         self.assertEqual(comp1.widget_list[0], comp2.widget_list[0])
     
     def test_can_resolve_one_dependency(self):
-        c = dipy.Container()
+        c = Container()
         
         # Register a class with a dependency and its dependent
         c.register("component", ComponentWithOneDependency)
@@ -115,7 +124,7 @@ class ContainerTests(unittest.TestCase):
         self.assertEqual(type(comp1.widget), ComponentWithNoDependencies)
     
     def test_can_resolve_list_dependency(self):
-        c = dipy.Container()
+        c = Container()
         
         # Register a class with a list dependency as well as some instances
         c.register("component", ComponentWithListDependency)
@@ -133,7 +142,7 @@ class ContainerTests(unittest.TestCase):
             self.assertEqual(type(widget), ComponentWithNoDependencies)
         
     def test_can_resolve_factory_dependency(self):
-        c = dipy.Container()
+        c = Container()
         
         # Register a component with a factory dependency
         c.register("component", ComponentWithFactoryDependency)
@@ -152,7 +161,7 @@ class ContainerTests(unittest.TestCase):
         self.assertNotEqual(dep1, dep2)
     
     def test_can_resolve_factory_dependency_with_arg(self):
-        c = dipy.Container()
+        c = Container()
         
         # Register a component with a factory dependency
         c.register("component", ComponentWithFactoryDependency)
@@ -170,7 +179,7 @@ class ContainerTests(unittest.TestCase):
         self.assertEqual(result.arg, 1)
     
     def test_can_resolve_func_registration(self):
-        c = dipy.Container()
+        c = Container()
 
         # Register a class with a dependency and its dependent
         c.register("component", ComponentWithOneDependency)
@@ -184,7 +193,7 @@ class ContainerTests(unittest.TestCase):
         self.assertEqual(type(comp1.widget), ComponentWithNoDependencies)
     
     def test_can_resolve_factory_of_list_dependency(self):
-        c = dipy.Container()
+        c = Container()
         
         # Register a component with a factory list dependency
         c.register("component", ComponentWithFactoryOfListDependency)
@@ -204,17 +213,17 @@ class ContainerTests(unittest.TestCase):
             self.assertEqual(type(widget), ComponentWithNoDependencies)
         
     def test_cannot_resolve_list_of_factory_dependency(self):
-        c = dipy.Container()
+        c = Container()
 
         # Register a component with a list of factory dependency
         c.register("component", ComponentWithListOfFactoryDependency)
         c.register("widget", ComponentWithNoDependencies)
 
         # Resolve the component, expect it to fail
-        self.assertRaises(dipy.DipyException, lambda: c.resolve("component"))
+        self.assertRaises(DipyException, lambda: c.resolve("component"))
     
     def test_can_resolve_mocked_components(self):
-        c = dipy.Container(automock=True)
+        c = Container(automock=True)
         
         # Register a class with a dependency, but not the dependency
         c.register("component", ComponentWithOneDependency)
@@ -224,17 +233,17 @@ class ContainerTests(unittest.TestCase):
         
         # Verify that the dependency was correctly mocked
         self.assertNotEqual(comp1.widget, None)
-        self.assertEqual(type(comp1.widget), dipy.Mock)
+        self.assertEqual(type(comp1.widget), Mock)
     
     def test_can_create_child_container(self):
         # Create a parent container and register a single instance and another component
-        parent = dipy.Container()
+        parent = Container()
         dep1 = ComponentWithNoDependencies()
         parent.register("widget", dep1)
         parent.register("component", ComponentWithOneDependency)
         
         # Create a child container, register another single instance dependency
-        child = dipy.Container(parent=parent)
+        child = Container(parent=parent)
         dep2 = ComponentWithNoDependencies()
         child.register("widget", dep2)
         
@@ -246,11 +255,11 @@ class ContainerTests(unittest.TestCase):
     
     def test_can_resolve_from_parent_with_mocking_child_container(self):
         # Create a parent container and a component
-        parent = dipy.Container()
+        parent = Container()
         parent.register("widget", ComponentWithNoDependencies)
         
         # Create a mocking child container, register another component
-        child = dipy.Container(parent=parent, automock=True)
+        child = Container(parent=parent, automock=True)
         child.register("component", ComponentWithOneDependency)
         
         # Resolve the component. It should be the instance from the parent
@@ -262,10 +271,10 @@ class ContainerTests(unittest.TestCase):
 
     def test_can_resolve_mock_from_parent_container(self):
         # Create a parent container with mocking
-        parent = dipy.Container(automock=True)
+        parent = Container(automock=True)
 
         # Create a child container, register a component with a dependency
-        child = dipy.Container(parent=parent)
+        child = Container(parent=parent)
         child.register("component", ComponentWithOneDependency)
         
         # Resolve the component. It should be the instance from the parent
@@ -273,16 +282,16 @@ class ContainerTests(unittest.TestCase):
         self.assertNotEqual(comp, None)
         self.assertEqual(type(comp), ComponentWithOneDependency)
         self.assertNotEqual(comp.widget, None)
-        self.assertEqual(type(comp.widget), dipy.Mock)
+        self.assertEqual(type(comp.widget), Mock)
 
     def test_can_dispose_components(self):
-        parent = dipy.Container()
+        parent = Container()
         
         # Register one component with gaurd 
         parent.register("component", ComponentWithGaurd)
         
         # Create a new container in a with statement
-        with dipy.Container(parent=parent) as child:
+        with Container(parent=parent) as child:
             # Resolve the component
             comp = child.resolve("component")
 
@@ -296,13 +305,13 @@ class ContainerTests(unittest.TestCase):
         self.assertEqual(comp._exit_calls, 1)
     
     def test_can_dispose_single_instance(self):
-        parent = dipy.Container()
+        parent = Container()
         
         # Register one component with gaurd 
         parent.register("component", ComponentWithGaurd, single_instance=True)
         
         # Create a new container in a with statement
-        with dipy.Container(parent=parent) as child:
+        with Container(parent=parent) as child:
             # Resolve the component
             comp = child.resolve("component")
 
@@ -316,14 +325,14 @@ class ContainerTests(unittest.TestCase):
         self.assertEqual(comp._exit_calls, 1)
  
     def test_can_dispose_dependent_components(self):
-        parent = dipy.Container()
+        parent = Container()
         
         # Register one component with gaurd and another without
         parent.register("component", ComponentWithOneDependency)
         parent.register("widget", ComponentWithGaurd)
         
         # Create a new container in a with statement
-        with dipy.Container(parent=parent) as child:
+        with Container(parent=parent) as child:
             # Resolve the component
             comp = child.resolve("component")
 
@@ -338,14 +347,14 @@ class ContainerTests(unittest.TestCase):
         self.assertEqual(comp.widget._exit_calls, 1)
 
     def test_single_instance_owned_by_child(self):
-        parent = dipy.Container()
+        parent = Container()
         
         # Register one component with gaurd and another without
         parent.register("component", ComponentWithOneDependency)
         parent.register("widget", ComponentWithGaurd, single_instance=True)
         
         # Create a new container in a with statement
-        with dipy.Container(parent=parent) as child:
+        with Container(parent=parent) as child:
             # Resolve the component
             comp = child.resolve("component")
 
@@ -433,10 +442,10 @@ class ComponentWithGaurd(object):
 
 #--- Tests for the mocking library
 
-class TestMock(unittest.TestCase):
+class TestMock(TestCase):
     
     def setUp(self):
-        self.mock = dipy.Mock("simple_mock")
+        self.mock = Mock("simple_mock")
     
     def test_can_mock_attributes(self):
         m = self.mock
@@ -494,4 +503,4 @@ class TestMock(unittest.TestCase):
 
 
 if __name__== '__main__':
-    unittest.main()
+    main()
