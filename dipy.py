@@ -24,23 +24,11 @@ class Container(object):
             self.registry.get(name, []) + [(obj, single_instance)]
     
     def resolve(self, type, *args):
-        # If asked for a string, resolve based on the name
-        if isinstance(type, str):
-            return self._resolve_from_str(type, *args)
-        
-        # Otherwise, resolve based on the named arguments for the constructor
-        init_args = type.__init__.im_func.func_code.co_varnames
-        resolved_args = {}
-        for arg in list(init_args)[(1 + len(args)):]:
-            resolved_args[arg] = self.resolve(arg)
-        
-        # Create and return the new instance
-        result = type(*args, **resolved_args)
-        if hasattr(result, '__enter__'):
-            result = result.__enter__()
-        return result
+        if not isinstance(type, str):
+            raise DipyException("Resolve must be passed a string argument")
+        return self._resolve_from_str(type, self, *args)
     
-    def _resolve_from_str(self, name, *args):
+    def _resolve_from_str(self, name, scope, *args):
        # Validate the requested name
         if not self._is_valid_name(name):
             raise DipyException(
@@ -51,20 +39,24 @@ class Container(object):
             if name[:-5] not in self.registry:
                 raise DipyException(
                     "The requested dependency '%s' could not be located" % name)
-            return [self._create_instance(name[:-5], obj, single_instance, *args)
+            return [scope._create_instance(name[:-5], obj, single_instance, *args)
                     for obj, single_instance in self.registry[name[:-5]]]
         
         # See if a factory is requested
         if name.endswith('_fact'):
-            return lambda *args: self.resolve(name[:-5], *args)
+            return lambda *args: self._resolve_from_str(name[:-5], scope, *args)
         
+        # If the dependency is registered in the current container, create the instance
+        if name in self.registry:
+            obj, is_single = self.registry[name][0]
+            return scope._create_instance(name, obj, is_single, *args)
+
         # Search through the container heirarchy looking for the dependency
-        container = self
-        while container:
-            if name in container.registry:
-                obj, is_single = container.registry[name][0]
-                return self._create_instance(name, obj, is_single, *args)
-            container = container.parent
+        if self.parent:
+            try:
+                return self.parent._resolve_from_str(name, scope, *args)
+            except DipyException:
+                pass
         
         # If mocking is enabled, create a new mock
         if self._automock:
@@ -82,8 +74,19 @@ class Container(object):
             return self._single_instances[name]
         # If the object is a type, resolve that type
         elif isinstance(obj, type):
-            self._instances.append(self.resolve(obj, *args))
-            return self._instances[-1]
+            # Create instance based on the named arguments for the constructor
+            init_args = obj.__init__.im_func.func_code.co_varnames
+            resolved_args = {}
+            for arg in list(init_args)[(1 + len(args)):]:
+                resolved_args[arg] = self._resolve_from_str(arg, self)
+            
+            # Create and return the new instance
+            result = obj(*args, **resolved_args)
+            if hasattr(result, '__enter__'):
+                result = result.__enter__()
+
+            self._instances.append(result)
+            return result
         # If the object is callable, call it with the container
         elif hasattr(obj, '__call__'):
             return obj(self)
