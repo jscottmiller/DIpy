@@ -26,7 +26,7 @@ class Container(object):
     def resolve(self, type, *args):
         # If asked for a string, resolve based on the name
         if isinstance(type, str):
-            return self._create_from_str(type, *args)
+            return self._resolve_from_str(type, *args)
         
         # Otherwise, resolve based on the named arguments for the constructor
         init_args = type.__init__.im_func.func_code.co_varnames
@@ -34,30 +34,14 @@ class Container(object):
         for arg in list(init_args)[(1 + len(args)):]:
             resolved_args[arg] = self.resolve(arg)
         
-        # Create, save, and return the new instance
+        # Create and return the new instance
         result = type(*args, **resolved_args)
         if hasattr(result, '__enter__'):
             result = result.__enter__()
-        self._instances.append(result)
         return result
     
-    def _create_from_str(self, name, *args):
-        def create_helper(name, obj, single_instance):
-            # If a single instance is required, create and store it
-            if single_instance:
-                if name not in self._single_instances: 
-                    self._single_instances[name] = create_helper(name, obj, False)
-                return self._single_instances[name]
-            # If the object is a type, resolve that type
-            elif isinstance(obj, type):
-                return self.resolve(obj, *args)
-            # If the object is callable, call it with the container
-            elif hasattr(obj, '__call__'):
-                return obj(self)
-            # Otherwise, just return the registered instance
-            return obj
-        
-        # Validate the requested name
+    def _resolve_from_str(self, name, *args):
+       # Validate the requested name
         if not self._is_valid_name(name):
             raise DipyException(
                 "The requested dependency name '%s' is not valid." % name)
@@ -67,7 +51,7 @@ class Container(object):
             if name[:-5] not in self.registry:
                 raise DipyException(
                     "The requested dependency '%s' could not be located" % name)
-            return [create_helper(name[:-5], obj, single_instance) 
+            return [self._create_instance(name[:-5], obj, single_instance, *args)
                     for obj, single_instance in self.registry[name[:-5]]]
         
         # See if a factory is requested
@@ -79,7 +63,7 @@ class Container(object):
         while container:
             if name in container.registry:
                 obj, is_single = container.registry[name][0]
-                return create_helper(name, obj, is_single)
+                return self._create_instance(name, obj, is_single, *args)
             container = container.parent
         
         # If mocking is enabled, create a new mock
@@ -89,7 +73,23 @@ class Container(object):
         # If no matching registration is found, raise an exception
         raise DipyException(
             "The requested dependency '%s' could not be located" % name)    
-    
+
+    def _create_instance(self, name, obj, single_instance, *args):
+        # If a single instance is required, create and store it
+        if single_instance:
+            if name not in self._single_instances: 
+                self._single_instances[name] = self._create_instance(name, obj, False, *args)
+            return self._single_instances[name]
+        # If the object is a type, resolve that type
+        elif isinstance(obj, type):
+            self._instances.append(self.resolve(obj, *args))
+            return self._instances[-1]
+        # If the object is callable, call it with the container
+        elif hasattr(obj, '__call__'):
+            return obj(self)
+        # Otherwise, just return the registered instance
+        return obj
+
     def _is_valid_name(self, name):
         for regex in self._invalid_names:
             if regex.findall(name): 
@@ -100,7 +100,7 @@ class Container(object):
         return self
     
     def __exit__(self, type, value, traceback):
-        for instance in self._single_instances.values() + self._instances:
+        for instance in self._instances:
             if hasattr(instance, '__exit__'):
                 instance.__exit__(type, value, traceback)
 
