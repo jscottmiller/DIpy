@@ -471,7 +471,7 @@ class TestMock(TestCase):
     
     def test_mock_repr(self):
         # Make sure the name is included in the repr
-        self.assertTrue(self.mock.name in repr(self.mock))
+        self.assertTrue(self.mock.mock_name in repr(self.mock))
     
     def test_can_mock_consistently(self):
         m = self.mock

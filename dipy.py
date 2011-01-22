@@ -124,7 +124,7 @@ class Mock(object):
         def set_attr(name, value):
             super(Mock, self).__setattr__(name, value)
         set_attr("attrs", {})
-        set_attr("name", name)
+        set_attr("mock_name", name)
         set_attr("call_history", [])
         set_attr("call_count", 0)
     
@@ -137,7 +137,7 @@ class Mock(object):
         self.attrs[name] = value
     
     def __call__(self, *args, **kwargs):
-        result = Mock(self.name + "_result")
+        result = Mock(self.mock_name + "_result")
         
         # Update the function call stats
         def get_attr(name):
@@ -150,6 +150,6 @@ class Mock(object):
         return result
     
     def __repr__(self):
-        return "<Mock instance '%s'>" % self.name
+        return "<Mock instance '%s'>" % self.mock_name
 
 
