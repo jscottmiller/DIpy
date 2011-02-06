@@ -18,7 +18,7 @@ class Container(object):
     
     def register(self, name, obj, single_instance=False, parent_owned=False):
         # If the object is not a type or function, add it to the instance list
-        if not isinstance(obj, type) and not hasattr(obj, '__call__'):
+        if not isinstance(obj, type) and not type(obj) == type(lambda: 1):
             self._add_instance(obj)
         self.registry[name] = \
             self.registry.get(name, []) + [(obj, single_instance, parent_owned)]
@@ -87,8 +87,10 @@ class Container(object):
             self._add_instance(instance)
             return instance
         # If the object is callable, call it with the container
-        elif hasattr(obj, '__call__'):
-            return obj(self)
+        elif type(obj) == type(lambda: 1):
+            instance = obj(self)
+            self._add_instance(instance)
+            return instance
         # Otherwise, just return the registered instance
         return obj
 
