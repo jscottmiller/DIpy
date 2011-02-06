@@ -16,19 +16,19 @@ class Container(object):
             re.compile(r"_fact_list"), # Don't allow lists of factories
         ]
     
-    def register(self, name, obj, single_instance=False):
+    def register(self, name, obj, single_instance=False, parent_owned=False):
         # If the object is not a type or function, add it to the instance list
         if not isinstance(obj, type) and not hasattr(obj, '__call__'):
             self._instances.append(obj)
         self.registry[name] = \
-            self.registry.get(name, []) + [(obj, single_instance)]
+            self.registry.get(name, []) + [(obj, single_instance, parent_owned)]
     
     def resolve(self, type, *args):
         if not isinstance(type, str):
             raise DipyException("Resolve must be passed a string argument")
         return self._resolve_from_str(type, self, *args)
     
-    def _resolve_from_str(self, name, scope, *args):
+    def _resolve_from_str(self, name, request_scope, *args):
        # Validate the requested name
         if not self._is_valid_name(name):
             raise DipyException(
@@ -39,22 +39,24 @@ class Container(object):
             if name[:-5] not in self.registry:
                 raise DipyException(
                     "The requested dependency '%s' could not be located" % name)
-            return [scope._create_instance(name[:-5], obj, single_instance, *args)
-                    for obj, single_instance in self.registry[name[:-5]]]
+            return [(self if parent_owned else request_scope)._create_instance(
+                        name[:-5], obj, single_instance, *args)
+                    for obj, single_instance, parent_owned in self.registry[name[:-5]]]
         
         # See if a factory is requested
         if name.endswith('_fact'):
-            return lambda *args: self._resolve_from_str(name[:-5], scope, *args)
+            return lambda *args: self._resolve_from_str(name[:-5], request_scope, *args)
         
         # If the dependency is registered in the current container, create the instance
         if name in self.registry:
-            obj, is_single = self.registry[name][0]
-            return scope._create_instance(name, obj, is_single, *args)
+            obj, single_instance, parent_owned = self.registry[name][0]
+            owner = self if parent_owned else request_scope
+            return owner._create_instance(name, obj, single_instance, *args)
 
         # Search through the container heirarchy looking for the dependency
         if self.parent:
             try:
-                return self.parent._resolve_from_str(name, scope, *args)
+                return self.parent._resolve_from_str(name, request_scope, *args)
             except DipyException:
                 pass
         

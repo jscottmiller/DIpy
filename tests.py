@@ -387,6 +387,41 @@ class ContainerTests(TestCase):
         self.assertEqual(type(w2), ComponentWithGaurd)
         self.assertNotEqual(w2, comp.widget)
 
+    def test_single_instance_owned_by_parent(self):
+        with Container() as parent:
+            
+            # Register one component with gaurd and another without
+            parent.register("component", ComponentWithOneDependency)
+            parent.register("widget", ComponentWithGaurd, single_instance=True, parent_owned=True)
+            
+            # Create a new container in a with statement
+            with Container(parent=parent) as child:
+                # Resolve the component
+                comp = child.resolve("component")
+
+                # Verify that enter was called on the dependency
+                self.assertNotEqual(comp.widget, None)
+                self.assertEqual(type(comp.widget), ComponentWithGaurd)
+                self.assertEqual(comp.widget._enter_calls, 1)
+                self.assertEqual(comp.widget._exit_calls, 0)
+            
+            # Verify exit is not called on the dependency
+            self.assertEqual(comp.widget._enter_calls, 1)
+            self.assertEqual(comp.widget._exit_calls, 0)
+
+            # Resolve a second component instance
+            w2 = parent.resolve("widget")
+
+            # Verify the widget is the same instance
+            self.assertNotEqual(w2, None)
+            self.assertEqual(type(w2), ComponentWithGaurd)
+            self.assertEqual(w2, comp.widget)
+        
+        # Verify exit is called on the dependency
+        self.assertEqual(comp.widget._enter_calls, 1)
+        self.assertEqual(comp.widget._exit_calls, 1)
+
+
 
 class ComponentWithNoDependencies(object):
     
