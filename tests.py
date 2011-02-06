@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 from unittest import TestCase, main
-from dipy import Container, Mock, DipyException
+from dipy import Container, Mock, DipyException, container_resolved
 
 
 #--- Tests and related classes for the IOC container
@@ -22,7 +22,25 @@ class ContainerTests(TestCase):
         self.assertEqual(type(comp1), ComponentWithNoDependencies)
         self.assertEqual(type(comp2), ComponentWithNoDependencies)
         self.assertNotEqual(comp1, comp2)
-    
+
+    def test_resolve_decorated_func(self):
+        c = Container()
+        
+        # Register the target class
+        c.register("component", ComponentWithNoDependencies)
+
+        # Declare a wrapped function with a component dependency
+        f = container_resolved(c)(lambda component: component)
+
+        # Resolve the components
+        comp1 = f()
+        comp2 = f()
+        
+        # Verify the correct objects were returned
+        self.assertEqual(type(comp1), ComponentWithNoDependencies)
+        self.assertEqual(type(comp2), ComponentWithNoDependencies)
+        self.assertNotEqual(comp1, comp2)
+
     def test_cannot_resolve_from_type(self):
         c = Container()
         

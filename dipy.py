@@ -124,6 +124,17 @@ class DipyException(Exception):
         return self.value
 
 
+def container_resolved(container):
+    def wrap(f):
+        def call(*args, **kwargs):
+            with Container(parent=container) as request:
+                func_args = f.func_code.co_varnames
+                resolved_args = [request.resolve(name) for name in func_args[len(args):]]
+                return f(*(args + tuple(resolved_args)), **kwargs)
+        return call
+    return wrap
+
+
 class Mock(object):
     
     def __init__(self, name):
