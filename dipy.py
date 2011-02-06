@@ -84,13 +84,11 @@ class Container(object):
             
             # Create and return the new instance
             instance = obj(*args, **resolved_args)
-            self._add_instance(instance)
-            return instance
+            return self._add_instance(instance)
         # If the object is callable, call it with the container
         elif type(obj) == type(lambda: 1):
             instance = obj(self)
-            self._add_instance(instance)
-            return instance
+            return self._add_instance(instance)
         # Otherwise, just return the registered instance
         return obj
 
@@ -104,6 +102,7 @@ class Container(object):
         if hasattr(obj, '__enter__'):
             obj = obj.__enter__()
         self._instances.append(obj)
+        return obj
     
     def __enter__(self):
         return self
