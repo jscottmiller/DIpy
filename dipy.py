@@ -77,7 +77,8 @@ class Container(object):
         # If the object is a type, resolve that type
         elif isinstance(obj, type):
             # Create instance based on the named arguments for the constructor
-            init_args = obj.__init__.im_func.func_code.co_varnames
+            c = obj.__init__.im_func.func_code
+            init_args = c.co_varnames[:c.co_argcount]
             resolved_args = {}
             for arg in list(init_args)[(1 + len(args)):]:
                 resolved_args[arg] = self._resolve_from_str(arg, self)
@@ -127,7 +128,8 @@ def container_resolved(container):
     def wrap(f):
         def call(*args, **kwargs):
             with Container(parent=container) as request:
-                func_args = f.func_code.co_varnames
+                c = f.func_code
+                func_args = c.co_varnames[:c.co_argcount]
                 resolved_args = [request.resolve(name) for name in func_args[len(args):]]
                 return f(*(args + tuple(resolved_args)), **kwargs)
         return call
