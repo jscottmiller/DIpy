@@ -125,18 +125,18 @@ class Mock(object):
     def __init__(self, name):
         def set_attr(name, value):
             super(Mock, self).__setattr__(name, value)
-        set_attr("attrs", {})
+        set_attr("mock_attrs", {})
         set_attr("mock_name", name)
         set_attr("call_history", [])
         set_attr("call_count", 0)
     
     def __getattr__(self, name):
-        if name not in self.attrs:
-            self.attrs[name] = Mock(name)
-        return self.attrs[name]
+        if name not in self.mock_attrs:
+            self.mock_attrs[name] = Mock(name)
+        return self.mock_attrs[name]
     
     def __setattr__(self, name, value):
-        self.attrs[name] = value
+        self.mock_attrs[name] = value
     
     def __call__(self, *args, **kwargs):
         result = Mock(self.mock_name + "_result")
