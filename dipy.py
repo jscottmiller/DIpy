@@ -19,7 +19,7 @@ class Container(object):
     def register(self, name, obj, single_instance=False, parent_owned=False):
         # If the object is not a type or function, add it to the instance list
         if not isinstance(obj, type) and not hasattr(obj, '__call__'):
-            self._instances.append(obj)
+            self._add_instance(obj)
         self.registry[name] = \
             self.registry.get(name, []) + [(obj, single_instance, parent_owned)]
     
@@ -83,12 +83,9 @@ class Container(object):
                 resolved_args[arg] = self._resolve_from_str(arg, self)
             
             # Create and return the new instance
-            result = obj(*args, **resolved_args)
-            if hasattr(result, '__enter__'):
-                result = result.__enter__()
-
-            self._instances.append(result)
-            return result
+            instance = obj(*args, **resolved_args)
+            self._add_instance(instance)
+            return instance
         # If the object is callable, call it with the container
         elif hasattr(obj, '__call__'):
             return obj(self)
@@ -100,6 +97,11 @@ class Container(object):
             if regex.findall(name): 
                 return False
         return True
+
+    def _add_instance(self, obj):
+        if hasattr(obj, '__enter__'):
+            obj = obj.__enter__()
+        self._instances.append(obj)
     
     def __enter__(self):
         return self
