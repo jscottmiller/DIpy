@@ -130,8 +130,10 @@ def container_resolved(container):
             with Container(parent=container) as request:
                 c = f.func_code
                 func_args = c.co_varnames[:c.co_argcount]
-                resolved_args = [request.resolve(name) for name in func_args[len(args):]]
-                return f(*(args + tuple(resolved_args)), **kwargs)
+                for name in func_args[len(args):]:
+                    if name in kwargs: continue
+                    kwargs[name] = request.resolve(name)
+                return f(*args, **kwargs)
         return call
     return wrap
 
