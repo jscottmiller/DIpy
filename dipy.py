@@ -20,8 +20,7 @@ class Container(object):
         # If the object is not a type or function, add it to the instance list
         if not isinstance(obj, type) and not type(obj) == type(lambda: 1):
             self._add_instance(obj)
-        self.registry[name] = \
-            self.registry.get(name, []) + [(obj, single_instance, parent_owned)]
+        self.registry.setdefault(name, []).append((obj, single_instance, parent_owned))
     
     def resolve(self, type, *args):
         if not isinstance(type, str):
