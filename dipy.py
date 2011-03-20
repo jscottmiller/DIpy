@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-import re
+from re import compile
 
 
 class Container(object):
@@ -13,7 +13,7 @@ class Container(object):
         self._instances = []
         self._single_instances = {}
         self._invalid_names = [
-            re.compile(r"_fact_list"), # Don't allow lists of factories
+            compile(r"_fact_list"), # Don't allow lists of factories
         ]
     
     def register(self, name, obj, single_instance=False, parent_owned=False):
