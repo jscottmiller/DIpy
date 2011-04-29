@@ -430,6 +430,10 @@ class ContainerTests(TestCase):
             # Resolve a second component instance
             w2 = parent.resolve("widget")
 
+            # Verify exit is not called on the dependency
+            self.assertEqual(w2._enter_calls, 1)
+            self.assertEqual(w2._exit_calls, 0)
+
             # Verify the widget is the same instance
             self.assertNotEqual(w2, None)
             self.assertEqual(type(w2), ComponentWithGaurd)

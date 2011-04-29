@@ -81,11 +81,9 @@ class Container(object):
             resolved_args = {}
             for arg in list(init_args)[(1 + len(args)):]:
                 resolved_args[arg] = self._resolve_from_str(arg, self)
-            
-            # Create and return the new instance
             instance = obj(*args, **resolved_args)
             return self._add_instance(instance)
-        # If the object is callable, call it with the container
+        # If the object is a function, call it with the container
         elif type(obj) == type(lambda: 1):
             instance = obj(self)
             return self._add_instance(instance)
