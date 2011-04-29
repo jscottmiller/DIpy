@@ -17,12 +17,20 @@ class Container(object):
         ]
     
     def register(self, name, obj, single_instance=False, parent_owned=False):
+        """ Register the specified object with the given name.
+
+        Keyword arguments:
+        single_instace -- At most one instance is to be created (default False)
+        parent_owned -- Instances are owned by the container on which they were
+        registered (default False)
+        """
         # If the object is not a type or function, add it to the instance list
         if not isinstance(obj, type) and not type(obj) == type(lambda: 1):
             self._add_instance(obj)
         self.registry.setdefault(name, []).append((obj, single_instance, parent_owned))
     
     def resolve(self, type, *args):
+        """ Resolve the component named 'type' from the container. """
         if not isinstance(type, str):
             raise DipyException("Resolve must be passed a string argument")
         return self._resolve_from_str(type, self, *args)
