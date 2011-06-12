@@ -12,9 +12,6 @@ class Container(object):
         self._automock = automock
         self._instances = []
         self._single_instances = {}
-        self._invalid_names = [
-            compile(r"_fact_list"), # Don't allow lists of factories
-        ]
     
     def register(self, name, obj, single_instance=False, parent_owned=False):
         """ Register the specified object with the given name.
@@ -36,8 +33,8 @@ class Container(object):
         return self._resolve_from_str(type, self, *args)
     
     def _resolve_from_str(self, name, request_scope, *args):
-       # Validate the requested name
-        if not self._is_valid_name(name):
+        # Validate the requested name
+        if name.endswith("_fact_list"):
             raise DipyException(
                 "The requested dependency name '%s' is not valid." % name)
                         
@@ -97,12 +94,6 @@ class Container(object):
             return self._add_instance(instance)
         # Otherwise, just return the registered instance
         return obj
-
-    def _is_valid_name(self, name):
-        for regex in self._invalid_names:
-            if regex.findall(name): 
-                return False
-        return True
 
     def _add_instance(self, obj):
         if hasattr(obj, '__enter__'):
