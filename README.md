@@ -11,7 +11,7 @@ DIpy features:
 1. Flexible component resolution and registration.
 2. Simple component lifetime management.
 3. Higher-order component resolution.
-4. Ability to mock missing dependencies.
+4. Ability to stub missing dependencies.
 
 Usage
 -----
@@ -84,15 +84,15 @@ Components can request higher-order dependencies that are derived based on depen
 
 Adding "_fact" to a dependency name will inject a factory function that can be used to create instances of that dependency at runtime. Additional parameters required by the dependency can be passed to this function.
 
-Finally, DIpy encourages proper unit testing of components by providing a built-in means of mocking components that have not been registered with the container:
+Finally, DIpy encourages proper unit testing of components by providing a built-in means of stubing components that have not been registered with the container:
 
 	class UserControl:
 		def __init__(self, third_party_component_x):
 			self.component = third_party_component_x
 	
-	con = dipy.Container(automock=True)
+	con = dipy.Container(autostub=True)
 	con.register("control", UserControl)
 	
-	# control.component will be an instance of dipy.Mock
+	# control.component will be an instance of dipy.Stub
 	control = con.resolve("control")
 

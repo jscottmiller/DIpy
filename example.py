@@ -3,13 +3,13 @@
 import dipy
 
 class Car(object):
-    def __init__(self, engine, dashboard_list, tic_tac, exhaust_fact, mock_me):
+    def __init__(self, engine, dashboard_list, tic_tac, exhaust_fact, stub_me):
         print "my engine: %s" % engine
         print "my dashboards: %s" % dashboard_list
         print "my candy: %s" % tic_tac
         exhaust_fact()
         exhaust_fact()
-        print "something mocked: %s" % mock_me
+        print "something stubed: %s" % mock_me
 
 
 class Engine(object):
@@ -31,7 +31,7 @@ class Exhaust(object):
 
 
 if __name__ == '__main__':
-    con = dipy.Container(automock=True)
+    con = dipy.Container(autostub=True)
     con.register("engine", Engine())
     con.register("dashboard", DashboardItem)
     con.register("dashboard", DashboardItem())

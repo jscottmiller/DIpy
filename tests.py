@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 from unittest import TestCase, main
-from dipy import Container, Mock, DipyException, container_resolved
+from dipy import Container, Stub, DipyException, container_resolved
 
 
 #--- Tests and related classes for the IOC container
@@ -240,8 +240,8 @@ class ContainerTests(TestCase):
         # Resolve the component, expect it to fail
         self.assertRaises(DipyException, lambda: c.resolve("component"))
     
-    def test_can_resolve_mocked_components(self):
-        c = Container(automock=True)
+    def test_can_resolve_stubed_components(self):
+        c = Container(autostub=True)
         
         # Register a class with a dependency, but not the dependency
         c.register("component", ComponentWithOneDependency)
@@ -249,9 +249,9 @@ class ContainerTests(TestCase):
         # Resolve the component
         comp1 = c.resolve("component")
         
-        # Verify that the dependency was correctly mocked
+        # Verify that the dependency was correctly stubed
         self.assertNotEqual(comp1.widget, None)
-        self.assertEqual(type(comp1.widget), Mock)
+        self.assertEqual(type(comp1.widget), Stub)
     
     def test_can_child_container_override_parent(self):
         # Create a parent container and register a single instance and another component
@@ -282,13 +282,13 @@ class ContainerTests(TestCase):
         # Resolve the component and verify that the child's component was injected
         self.assertRaises(DipyException, lambda: child.resolve("component"))
     
-    def test_can_resolve_from_parent_with_mocking_child_container(self):
+    def test_can_resolve_from_parent_with_stubing_child_container(self):
         # Create a parent container and a component
         parent = Container()
         parent.register("widget", ComponentWithNoDependencies)
         
-        # Create a mocking child container, register another component
-        child = Container(parent=parent, automock=True)
+        # Create a stubing child container, register another component
+        child = Container(parent=parent, autostub=True)
         child.register("component", ComponentWithOneDependency)
         
         # Resolve the component. It should be the instance from the parent
@@ -298,9 +298,9 @@ class ContainerTests(TestCase):
         self.assertNotEqual(comp.widget, None)
         self.assertEqual(type(comp.widget), ComponentWithNoDependencies)
 
-    def test_can_resolve_mock_from_parent_container(self):
-        # Create a parent container with mocking
-        parent = Container(automock=True)
+    def test_can_resolve_stub_from_parent_container(self):
+        # Create a parent container with stubing
+        parent = Container(autostub=True)
 
         # Create a child container, register a component with a dependency
         child = Container(parent=parent)
@@ -311,7 +311,7 @@ class ContainerTests(TestCase):
         self.assertNotEqual(comp, None)
         self.assertEqual(type(comp), ComponentWithOneDependency)
         self.assertNotEqual(comp.widget, None)
-        self.assertEqual(type(comp.widget), Mock)
+        self.assertEqual(type(comp.widget), Stub)
 
     def test_can_dispose_components(self):
         parent = Container()
@@ -508,15 +508,15 @@ class ComponentWithGaurd(object):
         self._exit_calls += 1
 
 
-#--- Tests for the mocking library
+#--- Tests for the stubing library
 
-class TestMock(TestCase):
+class TestStub(TestCase):
     
     def setUp(self):
-        self.mock = Mock("simple_mock")
+        self.stub = Stub("simple_stub")
     
-    def test_can_mock_attributes(self):
-        m = self.mock
+    def test_can_stub_attributes(self):
+        m = self.stub
         
         # Create some new attributes
         m.attribute_1 = "value1"
@@ -526,12 +526,12 @@ class TestMock(TestCase):
         self.assertEqual(m.attribute_1, "value1")
         self.assertEqual(m.attribute_2, [1, 2, 3, 4])
     
-    def test_mock_repr(self):
+    def test_stub_repr(self):
         # Make sure the name is included in the repr
-        self.assertTrue(self.mock.mock_name in repr(self.mock))
+        self.assertTrue(self.stub.stub_name in repr(self.stub))
     
-    def test_can_mock_consistently(self):
-        m = self.mock
+    def test_can_stub_consistently(self):
+        m = self.stub
         
         # Reference new attributes
         attr_1 = m.attr_1
@@ -542,23 +542,23 @@ class TestMock(TestCase):
         self.assertEqual(attr_1, m.attr_1)
         self.assertEqual(attr_2, m.attr_2)
     
-    def test_can_mock_function_calls(self):
-        m = self.mock
+    def test_can_stub_function_calls(self):
+        m = self.stub
         
-        # Call several mocked functions
+        # Call several stubed functions
         result_1 = m.func_no_args()
         result_2 = m.func_no_args()
         result_3 = m.func_args(1, 2, 3)
         result_4 = m.func_kwargs(kwarg1="arg1", kwarg2="arg2")
         result_5 = m.func_mix_args("one", "two", last="three")
         
-        # Verify the call counts of the mocked functions
+        # Verify the call counts of the stubed functions
         self.assertEqual(m.func_no_args.call_count, 2)
         self.assertEqual(m.func_args.call_count, 1)
         self.assertEqual(m.func_kwargs.call_count, 1)
         self.assertEqual(m.func_mix_args.call_count, 1)
         
-        # Verify that the arguments and results were captured by the mock
+        # Verify that the arguments and results were captured by the stub
         self.assertEqual(m.func_no_args.call_history[0], ((), {}, result_1))
         self.assertEqual(m.func_no_args.call_history[1], ((), {}, result_2))
         self.assertEqual(m.func_args.call_history[0], ((1, 2, 3), {}, result_3))

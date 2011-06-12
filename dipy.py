@@ -5,11 +5,11 @@ from re import compile
 
 class Container(object):
     
-    def __init__(self, parent=None, automock=False):
+    def __init__(self, parent=None, autostub=False):
         super(Container, self).__init__()
         self.parent = parent
         self.registry = {}
-        self._automock = automock
+        self._autostub = autostub
         self._instances = []
         self._single_instances = {}
     
@@ -64,9 +64,9 @@ class Container(object):
             except DipyException:
                 pass
         
-        # If mocking is enabled, create a new mock
-        if self._automock:
-            return Mock(name)
+        # If stubbing is enabled, create a new stub
+        if self._autostub:
+            return Stub(name)
         
         # If no matching registration is found, raise an exception
         raise DipyException(
@@ -134,38 +134,38 @@ def container_resolved(container):
     return wrap
 
 
-class Mock(object):
+class Stub(object):
     
     def __init__(self, name):
         def set_attr(name, value):
-            super(Mock, self).__setattr__(name, value)
-        set_attr("mock_attrs", {})
-        set_attr("mock_name", name)
+            super(Stub, self).__setattr__(name, value)
+        set_attr("stub_attrs", {})
+        set_attr("stub_name", name)
         set_attr("call_history", [])
         set_attr("call_count", 0)
     
     def __getattr__(self, name):
-        if name not in self.mock_attrs:
-            self.mock_attrs[name] = Mock(name)
-        return self.mock_attrs[name]
+        if name not in self.stub_attrs:
+            self.stub_attrs[name] = Stub(name)
+        return self.stub_attrs[name]
     
     def __setattr__(self, name, value):
-        self.mock_attrs[name] = value
+        self.stub_attrs[name] = value
     
     def __call__(self, *args, **kwargs):
-        result = Mock(self.mock_name + "_result")
+        result = Stub(self.stub_name + "_result")
         
         # Update the function call stats
         def get_attr(name):
-            return super(Mock, self).__getattribute__(name)
+            return super(Stub, self).__getattribute__(name)
         def set_attr(name, value):
-            super(Mock, self).__setattr__(name, value)
+            super(Stub, self).__setattr__(name, value)
         get_attr("call_history").append((args, kwargs, result))
         set_attr("call_count", get_attr("call_count") + 1)
         
         return result
     
     def __repr__(self):
-        return "<Mock instance '%s'>" % self.mock_name
+        return "<Stub instance '%s'>" % self.stub_name
 
 
