@@ -13,18 +13,18 @@ class Container(object):
         self._instances = []
         self._single_instances = {}
     
-    def register(self, name, obj, single_instance=False, parent_owned=False):
+    def register(self, name, obj, single_instance=False, instance_per_lifetime=True):
         """ Register the specified object with the given name.
 
         Keyword arguments:
         single_instace -- At most one instance is to be created (default False)
-        parent_owned -- Instances are owned by the container on which they were
-        registered (default False)
+        instance_per_lifetime -- Instances are owned by the container on which they
+        were resolved (default True)
         """
         # If the object is not a type or function, add it to the instance list
         if not isinstance(obj, type) and not type(obj) == type(lambda: 1):
             self._add_instance(obj)
-        self.registry.setdefault(name, []).append((obj, single_instance, parent_owned))
+        self.registry.setdefault(name, []).append((obj, single_instance, instance_per_lifetime))
     
     def resolve(self, type, *args):
         """ Resolve the component named 'type' from the container. """
@@ -43,9 +43,9 @@ class Container(object):
             if name[:-5] not in self.registry:
                 raise DipyException(
                     "The requested dependency '%s' could not be located" % name)
-            return [(self if parent_owned else request_scope)._create_instance(
+            return [(request_scope if instance_per_lifetime else self)._create_instance(
                         name[:-5], obj, single_instance, *args)
-                    for obj, single_instance, parent_owned in self.registry[name[:-5]]]
+                    for obj, single_instance, instance_per_lifetime in self.registry[name[:-5]]]
         
         # See if a factory is requested
         if name.endswith('_fact'):
@@ -53,8 +53,8 @@ class Container(object):
         
         # If the dependency is registered in the current container, create the instance
         if name in self.registry:
-            obj, single_instance, parent_owned = self.registry[name][0]
-            owner = self if parent_owned else request_scope
+            obj, single_instance, instance_per_lifetime = self.registry[name][0]
+            owner = request_scope if instance_per_lifetime else self
             return owner._create_instance(name, obj, single_instance, *args)
 
         # Search through the container heirarchy looking for the dependency
