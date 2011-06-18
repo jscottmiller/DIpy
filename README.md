@@ -37,7 +37,7 @@ When a component is registered via a type, resolving that component always retur
 
 Dependencies are injected based on constructor parameters:
 
-	class ComplexWidget:
+	class ComplexWidget(object):
 		def __init__(self, simple_widget)
 			self._simple_widget = simple_widget
 	
@@ -69,7 +69,7 @@ It is also possible to indicate that only single instance of a component should 
 
 Components can request higher-order dependencies that are derived based on dependency names. Appending "_list" to the end of a component name will inject a list of all components with that name:
 
-	class Machine:
+	class Machine(object):
 		def __init__(self, widget_list):
 			self.widgets = widget_list
 	
@@ -83,6 +83,14 @@ Components can request higher-order dependencies that are derived based on depen
 	machine = con.resolve("machine")
 
 Adding "_fact" to a dependency name will inject a factory function that can be used to create instances of that dependency at runtime. Additional parameters required by the dependency can be passed to this function.
+
+	class ReportGenerator(object):
+		def __init__(self, session_fact):
+			self.session_fact = session_fact
+
+		def do_it(self):
+			sess = self.session_fact()
+			sess.do_some_work()
 
 Finally, DIpy encourages proper unit testing of components by providing a built-in means of stubing components that have not been registered with the container:
 
