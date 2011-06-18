@@ -92,6 +92,8 @@ Adding "_fact" to a dependency name will inject a factory function that can be u
 			sess = self.session_fact()
 			sess.do_some_work()
 
+DIpy provides simple lifetime management of all registered components. When a component is resolved, its __enter__ method is called, if applicable. When the container''s __exit__ method is called for all components.
+
 Finally, DIpy encourages proper unit testing of components by providing a built-in means of stubing components that have not been registered with the container:
 
 	class UserControl:
