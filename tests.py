@@ -209,6 +209,26 @@ class ContainerTests(TestCase):
         # Verify that the component has the correct dependency set
         self.assertNotEqual(comp1.widget, None)
         self.assertEqual(type(comp1.widget), ComponentWithNoDependencies)
+
+    def test_can_resolve_owned_registration(self):
+        with Container() as c:
+            # Register a class with a owned dependency and a dependent with a guard
+            c.register("component", ComponentWithOwnedDependency)
+            c.register("widget", ComponentWithGaurd)
+
+            # Resolve the component
+            comp = c.resolve("component")
+
+            # Verify that the dependent exists and __enter__ was not called
+            self.assertNotEqual(comp.widget_owned, None)
+            w = comp.widget_owned
+            self.assertEqual(type(w), ComponentWithGaurd)
+            self.assertEqual(w._enter_calls, 0)
+            self.assertEqual(w._exit_calls, 0)
+
+        # Verify that the dependent exists and __exit__ was not called
+        self.assertEqual(w._enter_calls, 0)
+        self.assertEqual(w._exit_calls, 0)
     
     def test_can_resolve_factory_of_list_dependency(self):
         c = Container()
@@ -477,6 +497,13 @@ class ComponentWithFactoryDependency(object):
     def __init__(self, widget_fact):
         super(ComponentWithFactoryDependency, self).__init__()
         self.widget_fact = widget_fact
+
+
+class ComponentWithOwnedDependency(object):
+
+    def __init__(self, widget_owned):
+        super(ComponentWithOwnedDependency, self).__init__()
+        self.widget_owned = widget_owned
 
 
 class ComponentWithFactoryOfListDependency(object):

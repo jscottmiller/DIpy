@@ -30,9 +30,9 @@ class Container(object):
         """ Resolve the component named 'type' from the container. """
         if not isinstance(type, str):
             raise DipyException("Resolve must be passed a string argument")
-        return self._resolve_from_str(type, self, *args)
+        return self._resolve_from_str(type, self, False, *args)
     
-    def _resolve_from_str(self, name, request_scope, *args):
+    def _resolve_from_str(self, name, request_scope, comp_owned, *args):
         # Validate the requested name
         if name.endswith("_fact_list"):
             raise DipyException(
@@ -44,23 +44,27 @@ class Container(object):
                 raise DipyException(
                     "The requested dependency '%s' could not be located" % name)
             return [(request_scope if locally_owned else self)._create_instance(
-                        name[:-5], obj, single_instance, *args)
+                        name[:-5], obj, single_instance, comp_owned, *args)
                     for obj, single_instance, locally_owned in self.registry[name[:-5]]]
         
         # See if a factory is requested
         if name.endswith('_fact'):
-            return lambda *args: self._resolve_from_str(name[:-5], request_scope, *args)
+            return lambda *args: self._resolve_from_str(name[:-5], request_scope, comp_owned, *args)
+
+        # See if an owned instance is requested
+        if name.endswith('_owned'):
+            return self._resolve_from_str(name[:-6], request_scope, True, *args)
         
         # If the dependency is registered in the current container, create the instance
         if name in self.registry:
-            obj, single_instance, locally_owned = self.registry[name][0]
+            obj, single_instance, locally_owned= self.registry[name][0]
             owner = request_scope if locally_owned else self
-            return owner._create_instance(name, obj, single_instance, *args)
+            return owner._create_instance(name, obj, single_instance, comp_owned, *args)
 
         # Search through the container heirarchy looking for the dependency
         if self.parent:
             try:
-                return self.parent._resolve_from_str(name, request_scope, *args)
+                return self.parent._resolve_from_str(name, request_scope, comp_owned, *args)
             except DipyException:
                 pass
         
@@ -72,11 +76,11 @@ class Container(object):
         raise DipyException(
             "The requested dependency '%s' could not be located" % name)    
 
-    def _create_instance(self, name, obj, single_instance, *args):
+    def _create_instance(self, name, obj, single_instance, comp_owned, *args):
         # If a single instance is required, create and store it
         if single_instance:
             if name not in self._single_instances: 
-                self._single_instances[name] = self._create_instance(name, obj, False, *args)
+                self._single_instances[name] = self._create_instance(name, obj, False, comp_owned, *args)
             return self._single_instances[name]
         # If the object is a type, resolve that type
         elif isinstance(obj, type):
@@ -85,13 +89,13 @@ class Container(object):
             init_args = c.co_varnames[:c.co_argcount]
             resolved_args = {}
             for arg in list(init_args)[(1 + len(args)):]:
-                resolved_args[arg] = self._resolve_from_str(arg, self)
+                resolved_args[arg] = self._resolve_from_str(arg, self, False)
             instance = obj(*args, **resolved_args)
-            return self._add_instance(instance)
+            return instance if comp_owned else self._add_instance(instance)
         # If the object is a function, call it with the container
         elif type(obj) == type(lambda: 1):
             instance = obj(self)
-            return self._add_instance(instance)
+            return instance if comp_owned else self._add_instance(instance)
         # Otherwise, just return the registered instance
         return obj
 
