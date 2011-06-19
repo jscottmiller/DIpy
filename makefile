@@ -13,4 +13,4 @@ readme : README.md
 	open readme.html
 
 clean :
-	rm -rf *.pyc htmlcov .coverage .html
+	rm -rf *.pyc htmlcov .coverage *.html
