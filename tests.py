@@ -410,7 +410,7 @@ class ContainerTests(TestCase):
             
             # Register one component with gaurd and another without
             parent.register("component", ComponentWithOneDependency)
-            parent.register("widget", ComponentWithGaurd, single_instance=True, instance_per_lifetime=False)
+            parent.register("widget", ComponentWithGaurd, single_instance=True, locally_owned=False)
             
             # Create a new container in a with statement
             with Container(parent=parent) as child:
