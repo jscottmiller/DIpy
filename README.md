@@ -39,7 +39,7 @@ Dependencies are injected based on constructor parameters:
 
 	class ComplexWidget(object):
 		def __init__(self, simple_widget)
-			self._simple_widget = simple_widget
+			self.simple_widget = simple_widget
 	
 	con = dipy.Container()
 	
