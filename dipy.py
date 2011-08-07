@@ -1,6 +1,5 @@
 #!/usr/bin/python
 
-from re import compile
 from inspect import getargspec
 
 

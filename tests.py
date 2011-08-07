@@ -23,7 +23,7 @@ class ContainerTests(TestCase):
         self.assertEqual(type(comp2), ComponentWithNoDependencies)
         self.assertNotEqual(comp1, comp2)
 
-    def test_resolve_decorated_func(self):
+    def test_can_resolve_from_decorated_func(self):
         c = Container()
         
         # Register the target class
