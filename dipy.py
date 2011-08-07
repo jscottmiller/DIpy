@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
 from re import compile
+from inspect import getargspec
 
 
 class Container(object):
@@ -85,8 +86,8 @@ class Container(object):
         # If the object is a type, resolve that type
         elif isinstance(obj, type):
             # Create instance based on the named arguments for the constructor
-            c = obj.__init__.im_func.func_code
-            init_args = c.co_varnames[:c.co_argcount]
+            init = obj.__init__
+            init_args, ignore_1, ignore_2, ignore_4 = getargspec(init)
             resolved_args = {}
             for arg in list(init_args)[(1 + len(args)):]:
                 resolved_args[arg] = self._resolve_from_str(arg, self, False)
@@ -128,8 +129,7 @@ def container_resolved(container):
     def wrap(f):
         def call(*args, **kwargs):
             with Container(parent=container) as request:
-                c = f.func_code
-                func_args = c.co_varnames[:c.co_argcount]
+                func_args, ignore_1, ignore_2, ignore_4 = getargspec(f)
                 for name in func_args[len(args):]:
                     if name in kwargs: continue
                     kwargs[name] = request.resolve(name)
