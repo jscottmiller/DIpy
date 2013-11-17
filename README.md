@@ -13,6 +13,8 @@ DIpy features:
 3. Higher-order component resolution.
 4. Ability to stub missing dependencies.
 
+Just to be clear, I don't think python needs a DI framework, nor do I think you should really use this. It is more of a curiousity.
+
 Usage
 -----
 
